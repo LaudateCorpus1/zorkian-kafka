@@ -30,7 +30,7 @@ var (
 	rnd   = rand.New(rand.NewSource(time.Now().UnixNano()))
 	rndmu = &sync.Mutex{}
 
-	// Returned by consumers on Fetch when the retry limit is set and exceeded.
+	// ErrNoData is returned by consumers on Fetch when the retry limit is set and exceeded.
 	ErrNoData = errors.New("no data")
 
 	// Make sure interfaces are implemented
@@ -91,6 +91,7 @@ func (tp topicPartition) String() string {
 	return fmt.Sprintf("%s:%d", tp.topic, tp.partition)
 }
 
+//BrokerConf is the broker configuration container.
 type BrokerConf struct {
 	// Kafka client ID.
 	ClientID string
@@ -122,6 +123,7 @@ type BrokerConf struct {
 	ClusterConnectionConf ClusterConnectionConf
 }
 
+// NewBrokerConf constructs default configuration.
 func NewBrokerConf(clientID string) BrokerConf {
 	return BrokerConf{
 		ClientID:              clientID,
@@ -132,13 +134,14 @@ func NewBrokerConf(clientID string) BrokerConf {
 	}
 }
 
-type nodeMap map[int32]string
+// NodeMap maps a broker node ID to a connection handle.
+type NodeMap map[int32]string
 
 // Broker is an abstract connection to kafka cluster for the given configuration, and can be used to
 // create clients to the cluster.
 type Broker struct {
 	conf    BrokerConf
-	conns   *ConnectionPool
+	conns   *connectionPool
 	cluster *Cluster
 }
 
@@ -256,7 +259,7 @@ func (b *Broker) leaderConnection(topic string, partition int32) (*connection, e
 		// Now attempt to get a connection to this node
 		if addr := b.cluster.GetNodeAddress(nodeID); addr == "" {
 			// Forget the endpoint so we'll refresh metadata next try
-			resErr = errors.New("Unknown broker id.")
+			resErr = errors.New("unknown broker id")
 			log.Warningf("[leaderConnection %s:%d] unknown broker ID: %d",
 				topic, partition, nodeID)
 			b.cluster.ForgetEndpoint(topic, partition)
@@ -278,7 +281,7 @@ func (b *Broker) leaderConnection(topic string, partition int32) (*connection, e
 		}
 	}
 	if resErr == nil {
-		resErr = errors.New("Programmer error in leaderConnection: err can't be nil.")
+		resErr = errors.New("programmer error in leaderConnection: err can't be nil")
 	}
 	return nil, resErr
 }
@@ -422,9 +425,8 @@ offsetRetryLoop:
 				// Happens when there are no messages in the partition
 				if len(p.Offsets) == 0 {
 					return 0, p.Err
-				} else {
-					return p.Offsets[0], p.Err
 				}
+				return p.Offsets[0], p.Err
 			}
 		}
 	}
@@ -445,6 +447,7 @@ func (b *Broker) OffsetLatest(topic string, partition int32) (int64, error) {
 	return b.offset(topic, partition, -1)
 }
 
+// ProducerConf is the configuration for a producer.
 type ProducerConf struct {
 	// Compression method to use, defaulting to proto.CompressionNone.
 	Compression proto.Compression
@@ -593,6 +596,7 @@ func (p *producer) produce(
 	return 0, errors.New("incomplete produce response")
 }
 
+// ConsumerConf represents consumer configuration.
 type ConsumerConf struct {
 	// Topic name that should be consumed
 	Topic string
@@ -737,7 +741,7 @@ func (c *consumer) consume() ([]*proto.Message, error) {
 			return nil, err
 		}
 		if len(msgbuf) == 0 {
-			retry += 1
+			retry++
 			if c.conf.RetryLimit != -1 && retry > c.conf.RetryLimit {
 				return nil, ErrNoData
 			}
@@ -786,16 +790,16 @@ func (c *consumer) SeekToLatest() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if off, err := c.broker.OffsetLatest(c.conf.Topic, c.conf.Partition); err != nil {
+	off, err := c.broker.OffsetLatest(c.conf.Topic, c.conf.Partition)
+	if err != nil {
 		return err
-	} else {
-		oldOffset := c.offset
-		c.offset = off
-		c.msgbuf = make([]*proto.Message, 0)
-		log.Infof("SeekToLatest moving [%s:%d] offset %d -> %d.",
-			c.conf.Topic, c.conf.Partition, oldOffset, c.offset)
-		return nil
 	}
+	oldOffset := c.offset
+	c.offset = off
+	c.msgbuf = make([]*proto.Message, 0)
+	log.Infof("SeekToLatest moving [%s:%d] offset %d -> %d.",
+		c.conf.Topic, c.conf.Partition, oldOffset, c.offset)
+	return nil
 }
 
 // fetch and return next batch of messages. In case of certain set of errors,
@@ -879,6 +883,7 @@ consumeRetryLoop:
 	return nil, resErr
 }
 
+// OffsetCoordinatorConf is configuration for the offset coordinatior.
 type OffsetCoordinatorConf struct {
 	ConsumerGroup string
 
@@ -945,7 +950,7 @@ func (c *offsetCoordinator) commit(
 	// 2) this restriction only applies to partitions with a non-expired
 	// message at offset 0.
 	if offset < 0 {
-		return fmt.Errorf("Cannot commit negative offset %d for [%s:%d].",
+		return fmt.Errorf("cannot commit negative offset %d for [%s:%d]",
 			offset, topic, partition)
 	}
 

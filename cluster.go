@@ -14,10 +14,10 @@ import (
 // Cluster maintains the metadata and connectionPools for a Kafka cluster.
 type Cluster struct {
 	// ConnectionPool with only one connection to use for metadata requests
-	metadataConnPool *ConnectionPool
+	metadataConnPool *connectionPool
 
-	// ConnectionPoolCache for all other requests
-	connPoolCache *ConnectionPoolCache
+	// connectionPoolCache for all other requests
+	connPoolCache *connectionPoolCache
 
 	conf ClusterConnectionConf
 
@@ -28,12 +28,12 @@ type Cluster struct {
 	epoch      *int64
 	timeout    time.Duration
 	created    time.Time
-	nodes      nodeMap                  // node ID to address
+	nodes      NodeMap                  // node ID to address
 	endpoints  map[topicPartition]int32 // partition to leader node ID
 	partitions map[string]int32         // topic to number of partitions
 }
 
-func newCluster(conf ClusterConnectionConf, pool *ConnectionPool, connPoolCache *ConnectionPoolCache) *Cluster {
+func newCluster(conf ClusterConnectionConf, pool *connectionPool, connPoolCache *connectionPoolCache) *Cluster {
 	result := &Cluster{
 		mu:               &sync.RWMutex{},
 		timeout:          conf.MetadataRefreshTimeout,
@@ -63,7 +63,8 @@ func newCluster(conf ClusterConnectionConf, pool *ConnectionPool, connPoolCache 
 // metadata fetch, returns Cluster.
 func NewCluster(nodeAddresses []string, conf ClusterConnectionConf) (*Cluster, error) {
 	connPoolCache := newConnPoolCache()
-	metadataConnPool, err := connPoolCache.getOrCreateConnectionPool(metadataCacheClientId, conf, nodeAddresses)
+	metadataConnPool, err := connPoolCache.getOrCreateConnectionPool(
+		metadataCacheClientID, conf, nodeAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func NewCluster(nodeAddresses []string, conf ClusterConnectionConf) (*Cluster, e
 	for try := 0; try < conf.DialRetryLimit; try++ {
 		if try > 0 {
 			sleepFor := retry.Duration()
-			log.Infof("cannot fetch metadata from any connection (try %d, sleep %f)",
+			log.Infof("cannot fetch metadata from any connection (try %d, sleep %s)",
 				try, sleepFor)
 			time.Sleep(sleepFor)
 		}
@@ -116,7 +117,7 @@ func (cm *Cluster) cache(resp *proto.MetadataResp) {
 	log.Debugf("Caching new metadata: %+v", resp)
 
 	cm.created = time.Now()
-	cm.nodes = make(nodeMap)
+	cm.nodes = make(NodeMap)
 	cm.endpoints = make(map[topicPartition]int32)
 	cm.partitions = make(map[string]int32)
 
@@ -136,12 +137,12 @@ func (cm *Cluster) cache(resp *proto.MetadataResp) {
 	cm.connPoolCache.reinitializeAddrs(addrs)
 }
 
-// connectionPoolForClient returns the ConnectionPool to this cluster for the given client ID.
-func (cm *Cluster) connectionPoolForClient(clientId string, conf ClusterConnectionConf) (*ConnectionPool, error) {
-	return cm.connPoolCache.getOrCreateConnectionPool(clientId, conf, cm.metadataConnPool.GetAllAddrs())
+// connectionPoolForClient returns the connectionPool to this cluster for the given client ID.
+func (cm *Cluster) connectionPoolForClient(clientID string, conf ClusterConnectionConf) (*connectionPool, error) {
+	return cm.connPoolCache.getOrCreateConnectionPool(clientID, conf, cm.metadataConnPool.GetAllAddrs())
 }
 
-// Refresh is requesting metadata information from any node and refresh
+// RefreshMetadata is requesting metadata information from any node and refresh
 // internal cached representation. This method can block for a long time depending
 // on how long it takes to update metadata.
 func (cm *Cluster) RefreshMetadata() error {
@@ -165,7 +166,7 @@ func (cm *Cluster) RefreshMetadata() error {
 
 		// The counter has not updated, so it's on us to update metadata.
 		log.Info("refreshing metadata")
-		if meta, err := cm.Fetch(metadataCacheClientId); err == nil {
+		if meta, err := cm.Fetch(metadataCacheClientID); err == nil {
 			// Update metadata + update counter to be old value plus one.
 			cm.cache(meta)
 			atomic.StoreInt64(cm.epoch, ctr1+1)
@@ -193,7 +194,7 @@ func (cm *Cluster) RefreshMetadata() error {
 //
 // If "topics" are specified, only fetch metadata for those topics (can be
 // used to create a topic)
-func (cm *Cluster) Fetch(clientId string, topics ...string) (*proto.MetadataResp, error) {
+func (cm *Cluster) Fetch(clientID string, topics ...string) (*proto.MetadataResp, error) {
 	// Get all addresses, then walk the array in permuted random order.
 	addrs := cm.metadataConnPool.GetAllAddrs()
 	log.Infof("metadata fetch addrs: %s", addrs)
@@ -207,7 +208,7 @@ func (cm *Cluster) Fetch(clientId string, topics ...string) (*proto.MetadataResp
 			continue
 		}
 		resp, err := conn.Metadata(&proto.MetadataReq{
-			ClientID: clientId,
+			ClientID: clientID,
 			Topics:   topics,
 		})
 		_ = conn.Close()
@@ -255,11 +256,11 @@ func (cm *Cluster) ForgetEndpoint(topic string, partition int32) {
 }
 
 // GetNodes returns a map of nodes that exist in the cluster.
-func (cm *Cluster) GetNodes() nodeMap {
+func (cm *Cluster) GetNodes() NodeMap {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
 
-	nodes := make(nodeMap)
+	nodes := make(NodeMap)
 	for nodeID, addr := range cm.nodes {
 		nodes[nodeID] = addr
 	}

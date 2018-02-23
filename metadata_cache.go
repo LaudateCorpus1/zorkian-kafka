@@ -6,13 +6,13 @@ import (
 
 const (
 	// This will be used as the ClientId for any metadata requests.
-	metadataCacheClientId = "metadata-cache"
+	metadataCacheClientID = "metadata-cache"
 )
 
 var globalMetadataCacheLock sync.Mutex
 var globalMetadataCache *MetadataCache
 
-// If initialized, Kafka connections will be cached globally.
+// InitializeMetadataCache will make Kafka connections will be cached globally.
 func InitializeMetadataCache() {
 	globalMetadataCacheLock.Lock()
 	defer globalMetadataCacheLock.Unlock()
@@ -31,10 +31,9 @@ func getMetadataCache() *MetadataCache {
 	defer globalMetadataCacheLock.Unlock()
 	if globalMetadataCache != nil {
 		return globalMetadataCache
-	} else {
-		log.Infof("Creating metadata without using cache.")
-		return newMetadataCache()
 	}
+	log.Infof("Creating metadata without using cache.")
+	return newMetadataCache()
 }
 
 // MetadataCache is a threadsafe cache of ClusterMetadata by clusterName.  Entries are never removed

@@ -95,7 +95,7 @@ func (m *MetadataTester) Handler() RequestHandler {
 			wantsTopic[topic] = true
 		}
 
-		for topic, _ := range m.topics {
+		for topic := range m.topics {
 			// Return either all topics or only topics that they explicitly requested
 			_, explicitTopic := wantsTopic[topic]
 			if len(req.Topics) > 0 && !explicitTopic {
@@ -125,7 +125,7 @@ func (m *MetadataTester) Handler() RequestHandler {
 }
 
 func waitForMetadataEpoch(c *C, Prod Producer, epoch int) {
-	var prod *producer = Prod.(*producer)
+	prod := Prod.(*producer)
 	timeout := time.After(time.Minute)
 	for {
 		e := atomic.LoadInt64(prod.broker.cluster.epoch)

@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	log *logging.Logger
+	log   *logging.Logger
 	logMu = &sync.Mutex{}
 
 	logLevel = flag.Int(
@@ -28,6 +28,7 @@ func init() {
 	logging.SetLevel(logging.Level(*logLevel), "KafkaClient")
 }
 
+// SetLogger allows overriding the logger being used by Kafka clients.
 func SetLogger(l *logging.Logger) {
 	logMu.Lock()
 	defer logMu.Unlock()

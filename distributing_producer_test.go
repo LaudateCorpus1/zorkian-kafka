@@ -41,7 +41,7 @@ func (p *recordingProducer) Produce(topic string, part int32, msgs ...*proto.Mes
 
 	if _, ok := p.disabledPartitions[part]; ok {
 		p.disabledWrites++
-		return 0, errors.New("Oh noes.")
+		return 0, errors.New("oh noes")
 	}
 
 	offset := len(p.msgs)

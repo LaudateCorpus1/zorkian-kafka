@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// NoConnectionsAvailable indicates that the connection pool is full.
 type NoConnectionsAvailable struct{}
 
 func (NoConnectionsAvailable) Error() string {
@@ -96,7 +97,7 @@ func (b *backend) debugHitMaxConnections() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	b.debugNumHitMax += 1
+	b.debugNumHitMax++
 	now := time.Now()
 	if now.Before(b.debugTime) {
 		return
@@ -206,6 +207,7 @@ func (b *backend) Close() {
 	b.counter = 0
 }
 
+// ClusterConnectionConf is configuration for the cluster connection pool.
 type ClusterConnectionConf struct {
 	// ConnectionLimit sets a limit on how many outstanding connections may exist to a
 	// single broker. This limit is for all connections except Metadata fetches which are exempted
@@ -261,6 +263,7 @@ type ClusterConnectionConf struct {
 	MetadataRefreshFrequency time.Duration
 }
 
+// NewClusterConnectionConf constructs a default configuration.
 func NewClusterConnectionConf() ClusterConnectionConf {
 	return ClusterConnectionConf{
 		ConnectionLimit:          10,
@@ -273,9 +276,9 @@ func NewClusterConnectionConf() ClusterConnectionConf {
 	}
 }
 
-// connectionPool is a way for us to manage multiple connections to a Kafka broker in a way
+// ConnectionPool is a way for us to manage multiple connections to a Kafka broker in a way
 // that balances out throughput with overall number of connections.
-type ConnectionPool struct {
+type connectionPool struct {
 	conf ClusterConnectionConf
 
 	// mu protects the below members of this struct. This mutex must only be used by
@@ -289,8 +292,8 @@ type ConnectionPool struct {
 }
 
 // newConnectionPool creates a connection pool and initializes it.
-func NewConnectionPool(conf ClusterConnectionConf, nodes []string) *ConnectionPool {
-	connPool := ConnectionPool{
+func newConnectionPool(conf ClusterConnectionConf, nodes []string) *connectionPool {
+	connPool := connectionPool{
 		conf:     conf,
 		mu:       &sync.RWMutex{},
 		backends: make(map[string]*backend),
@@ -302,7 +305,7 @@ func NewConnectionPool(conf ClusterConnectionConf, nodes []string) *ConnectionPo
 }
 
 // newBackend creates a new backend structure.
-func (cp *ConnectionPool) newBackend(addr string) *backend {
+func (cp *connectionPool) newBackend(addr string) *backend {
 	return &backend{
 		mu:      &sync.Mutex{},
 		conf:    cp.conf,
@@ -312,7 +315,7 @@ func (cp *ConnectionPool) newBackend(addr string) *backend {
 }
 
 // getBackend fetches a backend for a given address or nil if none exists.
-func (cp *ConnectionPool) getBackend(addr string) *backend {
+func (cp *connectionPool) getBackend(addr string) *backend {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
@@ -321,7 +324,7 @@ func (cp *ConnectionPool) getBackend(addr string) *backend {
 
 // GetAllAddrs returns a slice of all addresses we've seen. Can be used for picking a random
 // address or iterating the known brokers.
-func (cp *ConnectionPool) GetAllAddrs() []string {
+func (cp *connectionPool) GetAllAddrs() []string {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
@@ -337,7 +340,7 @@ func (cp *ConnectionPool) GetAllAddrs() []string {
 // InitializeAddrs takes in a set of addresses and just sets up the structures for them. This
 // doesn't start any connecting. This is done so that we have a set of addresses for other
 // parts of the system to use.
-func (cp *ConnectionPool) InitializeAddrs(addrs []string) {
+func (cp *connectionPool) InitializeAddrs(addrs []string) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -364,7 +367,7 @@ func (cp *ConnectionPool) InitializeAddrs(addrs []string) {
 
 // GetIdleConnection returns a random idle connection from the set of connections that we
 // happen to have open. If no connections are available or idle, this returns nil.
-func (cp *ConnectionPool) GetIdleConnection() *connection {
+func (cp *connectionPool) GetIdleConnection() *connection {
 	addrs := cp.GetAllAddrs()
 
 	for _, idx := range rndPerm(len(addrs)) {
@@ -382,7 +385,7 @@ func (cp *ConnectionPool) GetIdleConnection() *connection {
 // IdleConnectionWait then we'll establish a new one. This can block a long time.
 //
 // See comments on GetConnection for details on the error returned.
-func (cp *ConnectionPool) GetConnectionByAddr(addr string) (*connection, error) {
+func (cp *connectionPool) GetConnectionByAddr(addr string) (*connection, error) {
 	if be := cp.getBackend(addr); be != nil {
 		return be.GetConnection()
 	}
@@ -392,7 +395,7 @@ func (cp *ConnectionPool) GetConnectionByAddr(addr string) (*connection, error) 
 // Idle takes a now idle connection and makes it available for other users. This should be
 // called in a goroutine so as not to block the original caller, as this function may take
 // some time to return.
-func (cp *ConnectionPool) Idle(conn *connection) {
+func (cp *connectionPool) Idle(conn *connection) {
 	if conn == nil {
 		return
 	}
