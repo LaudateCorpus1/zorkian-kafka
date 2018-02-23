@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dropbox/kafka"
-	"github.com/dropbox/kafka/proto"
+	"github.com/zorkian/kafka"
+	"github.com/zorkian/kafka/proto"
 )
 
 func TestProducerBrokenConnection(t *testing.T) {

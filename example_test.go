@@ -3,7 +3,7 @@ package kafka
 import (
 	"fmt"
 
-	"github.com/dropbox/kafka/proto"
+	"github.com/zorkian/kafka/proto"
 )
 
 func ExampleConsumer() {

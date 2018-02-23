@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dropbox/kafka/proto"
+	"github.com/zorkian/kafka/proto"
 )
 
 type topicOffset struct {

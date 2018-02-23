@@ -10,7 +10,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/dropbox/kafka/proto"
+	"github.com/zorkian/kafka/proto"
 )
 
 var _ = Suite(&BrokerSuite{})

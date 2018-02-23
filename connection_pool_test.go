@@ -3,7 +3,7 @@ package kafka
 import (
 	"time"
 
-	"github.com/dropbox/kafka/proto"
+	"github.com/zorkian/kafka/proto"
 
 	. "gopkg.in/check.v1"
 )

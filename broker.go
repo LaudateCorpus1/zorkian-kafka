@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dropbox/kafka/proto"
+	"github.com/zorkian/kafka/proto"
 	"github.com/jpillora/backoff"
 )
 
