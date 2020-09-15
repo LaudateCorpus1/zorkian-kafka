@@ -1,4 +1,4 @@
-module github.com/zorkian/kafka
+module github.com/discord/zorkian-kafka
 
 go 1.15
 

@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/zorkian/kafka/proto"
+	"github.com/discord/zorkian-kafka/proto"
 )
 
 // ErrClosed is returned as result of any request made using closed connection.

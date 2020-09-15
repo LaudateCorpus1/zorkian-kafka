@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zorkian/kafka"
-	"github.com/zorkian/kafka/proto"
+	"github.com/discord/zorkian-kafka"
+	"github.com/discord/zorkian-kafka/proto"
 )
 
 var (

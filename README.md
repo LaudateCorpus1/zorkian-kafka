@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/zorkian/kafka.svg?branch=master)](https://travis-ci.org/dropbox/kafka)
-[![GoDoc](https://godoc.org/github.com/zorkian/kafka?status.png)](https://godoc.org/github.com/dropbox/kafka)
+[![GoDoc](https://godoc.org/github.com/discord/zorkian-kafka?status.png)](https://godoc.org/github.com/dropbox/kafka)
 
 # Kafka
 
@@ -11,8 +11,8 @@ Kafka provides minimal abstraction over wire protocol, support for transparent
 failover and easy to use blocking API.
 
 
-* [godoc](https://godoc.org/github.com/zorkian/kafka) generated documentation,
-* [code examples](https://godoc.org/github.com/zorkian/kafka#pkg-examples)
+* [godoc](https://godoc.org/github.com/discord/zorkian-kafka) generated documentation,
+* [code examples](https://godoc.org/github.com/discord/zorkian-kafka#pkg-examples)
 
 ## Example
 
@@ -29,8 +29,8 @@ import (
     "os"
     "strings"
 
-    "github.com/zorkian/kafka"
-    "github.com/zorkian/kafka/proto"
+    "github.com/discord/zorkian-kafka"
+    "github.com/discord/zorkian-kafka/proto"
 )
 
 const (

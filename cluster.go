@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/zorkian/kafka/proto"
+	"github.com/discord/zorkian-kafka/proto"
 	"github.com/jpillora/backoff"
 )
 

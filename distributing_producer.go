@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/jpillora/backoff"
-	"github.com/zorkian/kafka/proto"
+	"github.com/discord/zorkian-kafka/proto"
 )
 
 // DistributingProducer is the interface similar to Producer, but never require

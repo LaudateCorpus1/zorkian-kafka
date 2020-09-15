@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zorkian/kafka/proto"
+	"github.com/discord/zorkian-kafka/proto"
 )
 
 const (
