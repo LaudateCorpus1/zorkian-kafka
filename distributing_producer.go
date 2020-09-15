@@ -2,12 +2,13 @@ package kafka
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/zorkian/kafka/proto"
 	"github.com/jpillora/backoff"
+	"github.com/zorkian/kafka/proto"
 )
 
 // DistributingProducer is the interface similar to Producer, but never require
@@ -226,9 +227,10 @@ func (p *partitionManager) SetPartitionCount(topic string, partitionCount int32)
 			topic, cap(availablePartitions), partitionCount)
 
 		availablePartitions = make(chan *partitionData, partitionCount)
-		for i := int32(0); i < partitionCount; i++ {
+		// Randomize the order of partitions to decorrelate publish partitions when many producers are restarted at once
+		for _, i := range rand.Perm(int(partitionCount)) {
 			availablePartitions <- &partitionData{
-				Partition:           i,
+				Partition:           int32(i),
 				reset:               make(chan struct{}, 1),
 				sharedRetry:         p.sharedRetry,
 				availablePartitions: availablePartitions,
