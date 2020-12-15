@@ -1,15 +1,18 @@
 package kafka
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/jpillora/backoff"
 	"github.com/discord/zorkian-kafka/proto"
+	"github.com/jpillora/backoff"
 )
+
+var ErrNoPartitionsAvailable = errors.New("all partitions suspended due to previous failures, refusing to produce")
 
 // DistributingProducer is the interface similar to Producer, but never require
 // to explicitly specify partition.
@@ -66,12 +69,6 @@ type errorAverseRRProducer struct {
 	partitionManager     *partitionManager
 }
 
-type NoPartitionsAvailable struct{}
-
-func (NoPartitionsAvailable) Error() string {
-	return "All partitions suspended due to previous failures, refusing to attempt the produce."
-}
-
 func NewErrorAverseRRProducer(conf *errorAverseRRProducerConf) DistributingProducer {
 	return &errorAverseRRProducer{
 		partitionCountSource: conf.PartitionCountSource,
@@ -84,8 +81,7 @@ func NewErrorAverseRRProducer(conf *errorAverseRRProducerConf) DistributingProdu
 		}}
 }
 
-func (d *errorAverseRRProducer) Distribute(topic string, messages ...*proto.Message) (
-	partition int32, offset int64, err error) {
+func (d *errorAverseRRProducer) Distribute(topic string, messages ...*proto.Message) (int32, int64, error) {
 
 	if count, err := d.partitionCountSource.PartitionCount(topic); err == nil {
 		d.partitionManager.SetPartitionCount(topic, count)
@@ -97,17 +93,20 @@ func (d *errorAverseRRProducer) Distribute(topic string, messages ...*proto.Mess
 	partitionData, err := d.partitionManager.GetPartition(topic)
 	if err != nil {
 		log.Error(err.Error())
-		return 0, 0, &NoPartitionsAvailable{}
+		return 0, 0, ErrNoPartitionsAvailable
 	}
+
 	// We are now obligated to call Success or Failure on partitionData.
-	if offset, err := d.producer.Produce(topic, partitionData.Partition, messages...); err != nil {
+	var offset int64
+	offset, err = d.producer.Produce(topic, partitionData.Partition, messages...)
+	if err != nil {
 		log.Errorf("Failed to produce [%s:%d]: %s", topic, partitionData.Partition, err)
 		partitionData.Failure()
 		return 0, 0, err
-	} else {
-		partitionData.Success()
-		return partitionData.Partition, offset, nil
 	}
+
+	partitionData.Success()
+	return partitionData.Partition, offset, nil
 }
 
 // partitionData wraps a retry tracker and the partitionManager's chan for
@@ -247,19 +246,20 @@ func (p *partitionManager) GetPartition(topic string) (*partitionData, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	if availablePartitions, ok := p.availablePartitions[topic]; !ok {
+	availablePartitions, ok := p.availablePartitions[topic]
+	if !ok {
 		return nil, fmt.Errorf("No such topic %s", topic)
-	} else {
-		select {
-		case partitionData, ok := <-availablePartitions:
-			if !ok {
-				return nil, fmt.Errorf(fmt.Sprintf("Programmer error in GetPartition(%s)! "+
-					"This should never happen.", topic))
-			}
-			defer partitionData.reEnqueue()
-			return partitionData, nil
-		case <-time.After(p.getTimeout):
-			return nil, fmt.Errorf(fmt.Sprintf("Timeout waiting for partition for %s.", topic))
+	}
+
+	select {
+	case partitionData, ok := <-availablePartitions:
+		if !ok {
+			return nil, fmt.Errorf(fmt.Sprintf("Programmer error in GetPartition(%s)! "+
+				"This should never happen.", topic))
 		}
+		defer partitionData.reEnqueue()
+		return partitionData, nil
+	case <-time.After(p.getTimeout):
+		return nil, fmt.Errorf(fmt.Sprintf("Timeout waiting for partition for %s.", topic))
 	}
 }

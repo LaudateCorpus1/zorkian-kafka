@@ -50,7 +50,7 @@ func newCluster(conf ClusterConnectionConf, pool *connectionPool, connPoolCache 
 			for {
 				select {
 				case <-time.After(conf.MetadataRefreshFrequency):
-					log.Info("Initiating periodic metadata refresh.")
+					log.Debug("Initiating periodic metadata refresh.")
 					_ = result.RefreshMetadata()
 				}
 			}
@@ -165,7 +165,7 @@ func (cm *Cluster) RefreshMetadata() error {
 		}
 
 		// The counter has not updated, so it's on us to update metadata.
-		log.Info("refreshing metadata")
+		log.Debug("refreshing metadata")
 		if meta, err := cm.Fetch(metadataCacheClientID); err == nil {
 			// Update metadata + update counter to be old value plus one.
 			cm.cache(meta)
@@ -197,7 +197,7 @@ func (cm *Cluster) RefreshMetadata() error {
 func (cm *Cluster) Fetch(clientID string, topics ...string) (*proto.MetadataResp, error) {
 	// Get all addresses, then walk the array in permuted random order.
 	addrs := cm.metadataConnPool.GetAllAddrs()
-	log.Infof("metadata fetch addrs: %s", addrs)
+	log.Debugf("metadata fetch addrs: %s", addrs)
 	// split the timeout so that we can try getting the metadata from more than one broker.
 	perBrokerTimeout := cm.getTimeout() / 2
 	for _, idx := range rndPerm(len(addrs)) {

@@ -25,7 +25,7 @@ func (s *ConnectionPoolSuite) TestConnectionLimit(c *C) {
 	conf.ClusterConnectionConf.ConnectionLimit = 2
 	conf.ClusterConnectionConf.DialTimeout = 1 * time.Second
 	addresses := []string{srv.Address()}
-	cp := NewConnectionPool(conf.ClusterConnectionConf, addresses)
+	cp := newConnectionPool(conf.ClusterConnectionConf, addresses)
 	cp.InitializeAddrs(addresses)
 	be := cp.getBackend(srv.Address())
 
@@ -94,7 +94,7 @@ func (s *ConnectionPoolSuite) TestGetConnectionError(c *C) {
 	conf.IdleConnectionWait = 200 * time.Millisecond
 
 	addresses := []string{srv.Address()}
-	cp := NewConnectionPool(conf, addresses)
+	cp := newConnectionPool(conf, addresses)
 	cp.InitializeAddrs([]string{srv.Address()})
 	be := cp.getBackend(srv.Address())
 
@@ -132,7 +132,7 @@ func (s *ConnectionPoolSuite) TestGetConnectionError(c *C) {
 
 func (s *ConnectionPoolSuite) TestTrimDeadAddrs(c *C) {
 	addresses := []string{"foo", "bar", "baz"}
-	cp := NewConnectionPool(NewClusterConnectionConf(), addresses)
+	cp := newConnectionPool(NewClusterConnectionConf(), addresses)
 	cp.InitializeAddrs(addresses)
 	c.Assert(len(cp.GetAllAddrs()), Equals, 3)
 	c.Assert(cp.getBackend("foo"), NotNil)

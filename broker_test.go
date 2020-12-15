@@ -5,7 +5,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"testing"
 	"time"
 
 	. "gopkg.in/check.v1"
@@ -14,8 +13,6 @@ import (
 )
 
 var _ = Suite(&BrokerSuite{})
-
-func Test(t *testing.T) { TestingT(t) }
 
 type BrokerSuite struct{}
 

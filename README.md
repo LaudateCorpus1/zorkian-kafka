@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/zorkian/kafka.svg?branch=master)](https://travis-ci.org/dropbox/kafka)
-[![GoDoc](https://godoc.org/github.com/discord/zorkian-kafka?status.png)](https://godoc.org/github.com/dropbox/kafka)
+[![GoDoc](https://godoc.org/github.com/discord/zorkian-kafka?status.png)](https://godoc.org/github.com/discord/zorkian-kafka)
 
 # Kafka
 
