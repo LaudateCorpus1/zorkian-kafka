@@ -53,8 +53,7 @@ func newMetadataCache() *MetadataCache {
 
 // getOrCreateMetadata creates or gets the existing broker from the MetadataCache for the given
 // cluster nodeAddresses.
-func (g *MetadataCache) getOrCreateMetadata(
-	clusterName string, nodeAddresses []string, conf ClusterConnectionConf) (*Cluster, error) {
+func (g *MetadataCache) getOrCreateMetadata(clusterName string, nodeAddresses []string, conf ClusterConnectionConf) (*Cluster, error) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 
